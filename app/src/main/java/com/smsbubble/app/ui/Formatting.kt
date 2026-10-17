@@ -28,19 +28,15 @@ fun LocalDateTime.toMillis(): Long =
 private fun weekday(d: LocalDate): String =
     d.dayOfWeek.getDisplayName(TextStyle.FULL, VI).replaceFirstChar { it.uppercase(VI) }
 
-/** Nhãn thời gian ở giữa khung chat, ví dụ "Hôm nay 16:24", "Thứ Hai 09:10", "12/03/2025 lúc 08:00". */
+/** "Thứ 2" … "Thứ 7", "Chủ nhật". */
+private fun weekdayShort(d: LocalDate): String =
+    if (d.dayOfWeek.value == 7) "Chủ nhật" else "Thứ ${d.dayOfWeek.value + 1}"
+
+/** Nhãn thời gian ở giữa khung chat, ví dụ "15:23 Thứ 2, 13 thg 7". */
 fun headerLabel(ts: Long): String {
     val t = ts.toLdt()
     val d = t.toLocalDate()
-    val today = LocalDate.now()
-    val time = t.format(HM)
-    return when {
-        d == today -> "Hôm nay $time"
-        d == today.minusDays(1) -> "Hôm qua $time"
-        d.isAfter(today.minusDays(7)) && d.isBefore(today) -> "${weekday(d)} $time"
-        d.year == today.year -> "${weekday(d)}, ${d.dayOfMonth} thg ${d.monthValue} lúc $time"
-        else -> "${d.format(DMY)} lúc $time"
-    }
+    return "${t.format(HM)} ${weekdayShort(d)}, ${d.dayOfMonth} thg ${d.monthValue}"
 }
 
 /** Nhãn ngắn ở danh sách cuộc trò chuyện. */
