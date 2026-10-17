@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,8 +24,18 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/SmsBubble.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: SmsBubble-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish APK to Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: SMS Bubble (bản ${{ github.run_number }})
+          body: Tải file SmsBubble.apk bên dưới và mở trên điện thoại để cài.
+          files: app/build/outputs/apk/debug/SmsBubble.apk
