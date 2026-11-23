@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SMS Bubble</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SMS Bubble">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#ffffff; --text:#000000; --meta:#8E8E93; --in:#E9E9EB; --out:#34C759;
+  --link:#2E6BE6; --blue:#007AFF; --glass:rgba(255,255,255,.94); --sep:#C6C6C8;
+  --sheet:#F2F2F7; --cell:#ffffff; --danger:#FF3B30; --field:#ffffff;
+  --shadow:0 2px 10px rgba(0,0,0,.12), 0 0 1px rgba(0,0,0,.08);
+  --top:env(safe-area-inset-top,0px); --bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000; --text:#ffffff; --in:#26252A; --out:#30D158; --link:#4C8DFF; --blue:#0A84FF;
+    --glass:rgba(44,44,46,.94); --sep:#38383A; --sheet:#1C1C1E; --cell:#2C2C2E; --field:#1C1C1E;
+    --shadow:0 2px 10px rgba(0,0,0,.5);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,"Helvetica Neue",Arial,sans-serif;
+  -webkit-text-size-adjust:100%;overscroll-behavior:none}
+#app{position:fixed;left:0;right:0;top:0;height:var(--vh,100%);display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+svg{display:block}
+
+/* ---------- Danh sách ---------- */
+.list-top{padding:calc(var(--top) + 6px) 12px 4px;display:flex;justify-content:flex-end;gap:4px}
+.icon-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.big-title{font-size:34px;font-weight:700;letter-spacing:.3px;padding:2px 18px 10px}
+.convs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--bottom)}
+.row{display:flex;gap:12px;padding:10px 0 0 18px;align-items:flex-start;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.row:active{background:rgba(127,127,127,.12)}
+.row .body{flex:1;min-width:0;padding:0 12px 10px 0;border-bottom:.5px solid var(--sep)}
+.row:last-child .body{border-bottom:0}
+.row .line1{display:flex;align-items:center;gap:6px}
+.row .name{flex:1;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .when{font-size:15px;color:var(--meta)}
+.row .chev{color:var(--meta);opacity:.6}
+.row .prev{font-size:15px;color:var(--meta);line-height:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
+.empty{color:var(--meta);text-align:center;padding:60px 32px;line-height:1.5}
+
+/* ---------- Avatar ---------- */
+.avatar{border-radius:50%;flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#A9B2DC,#7C86BD);color:#fff;font-weight:600}
+.avatar svg{width:100%;height:100%}
+
+/* ---------- Chat ---------- */
+.chat{flex:1;position:relative;min-height:0}
+.msgs{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(var(--top) + 140px) 14px 10px}
+.hdr{position:absolute;left:0;right:0;top:0;z-index:5;padding:calc(var(--top) + 6px) 14px 20px;
+  background:linear-gradient(to bottom,var(--bg) 0%,var(--bg) 55%,transparent 100%);pointer-events:none}
+.hdr > *{pointer-events:auto}
+.glass{background:var(--glass);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.hdr .back{position:absolute;left:14px;top:calc(var(--top) + 14px)}
+.hdr .more{position:absolute;right:14px;top:calc(var(--top) + 14px)}
+.who{display:flex;flex-direction:column;align-items:center;width:max-content;margin:0 auto}
+.pill{margin-top:-12px;border-radius:999px;padding:6px 8px 6px 16px;display:flex;align-items:center;gap:2px;
+  font-size:17px;font-weight:700;max-width:230px}
+.pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill svg{color:var(--meta);flex:none}
+.time{text-align:center;color:var(--meta);font-size:13px;padding:18px 0 8px}
+.time b{font-weight:600}
+.m{display:flex;margin-top:2px}
+.m.first{margin-top:6px}
+.m.out{justify-content:flex-end}
+.bubble{position:relative;max-width:78%;padding:9px 14px;border-radius:20px;font-size:17px;line-height:22px;
+  white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.m.in .bubble{background:var(--in);color:var(--text);margin-left:6px}
+.m.out .bubble{background:var(--out);color:#fff;margin-right:6px}
+.bubble .lk{color:var(--link);text-decoration:underline}
+.m.out .bubble .lk{color:#fff}
+.bubble .mn{text-decoration:underline}
+/* đuôi bong bóng kiểu iPhone */
+.m.tail .bubble::before,.m.tail .bubble::after{content:"";position:absolute;bottom:0;height:20px}
+.m.in.tail .bubble::before{left:-7px;width:20px;background:var(--in);border-bottom-right-radius:16px}
+.m.in.tail .bubble::after{left:-26px;width:26px;background:var(--bg);border-bottom-right-radius:10px}
+.m.out.tail .bubble::before{right:-7px;width:20px;background:var(--out);border-bottom-left-radius:16px}
+.m.out.tail .bubble::after{right:-26px;width:26px;background:var(--bg);border-bottom-left-radius:10px}
+.m.pressed .bubble{filter:brightness(.92)}
+
+/* ---------- Ô soạn tin ---------- */
+.composer{display:flex;align-items:flex-end;gap:10px;padding:8px 14px calc(8px + var(--bottom));background:var(--bg)}
+.composer .plus{flex:none}
+.field{flex:1;min-height:48px;border-radius:24px;display:flex;align-items:center;padding:0 7px 0 18px}
+.field textarea{flex:1;border:0;outline:0;background:transparent;color:var(--text);resize:none;
+  font:inherit;font-size:17px;line-height:22px;padding:13px 0;max-height:140px;height:48px}
+.field textarea::placeholder{color:var(--meta);opacity:1}
+.mic{color:var(--meta);padding:0 8px}
+.send{width:34px;height:34px;border-radius:50%;background:var(--out);color:#fff;display:flex;align-items:center;justify-content:center;margin:7px 0}
+
+/* ---------- Sheet / hộp thoại ---------- */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;
+  animation:fade .18s ease}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(40px);opacity:.5}}
+.sheet{width:100%;max-width:520px;background:var(--sheet);border-radius:14px 14px 0 0;
+  padding:16px 16px calc(16px + var(--bottom));animation:up .22s ease;max-height:92%;overflow-y:auto}
+.sheet h3{margin:2px 0 14px;font-size:17px;text-align:center;font-weight:600}
+.lbl{font-size:13px;color:var(--meta);margin:12px 4px 6px;text-transform:uppercase;letter-spacing:.2px}
+.inp{width:100%;background:var(--field);color:var(--text);border:0;border-radius:10px;padding:12px 14px;font:inherit;font-size:17px;outline:0}
+textarea.inp{resize:none;min-height:96px;line-height:22px}
+.inp.err{box-shadow:inset 0 0 0 1.5px var(--danger)}
+.hint{font-size:13px;color:var(--meta);margin:6px 4px 0}
+.hint.err{color:var(--danger)}
+.two{display:flex;gap:10px}
+.two > *{flex:1;min-width:0}
+input[type=date].inp,input[type=time].inp{-webkit-appearance:none;appearance:none;min-height:46px;text-align:left}
+.seg{display:flex;background:rgba(118,118,128,.16);border-radius:9px;padding:2px}
+.seg button{flex:1;padding:7px 6px;border-radius:7px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button.on{background:var(--cell);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.btns{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:13px;border-radius:12px;background:var(--cell);font-size:17px;color:var(--blue)}
+.btn.primary{background:var(--blue);color:#fff;font-weight:600}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.4}
+/* action sheet */
+.acts{width:100%;max-width:520px;padding:0 8px calc(8px + var(--bottom));animation:up .22s ease}
+.acts .grp{background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-radius:14px;overflow:hidden;margin-bottom:8px}
+.acts .grp.cancel{background:var(--cell)}
+.acts .title{font-size:13px;color:var(--meta);text-align:center;padding:12px 16px}
+.acts button{display:block;width:100%;padding:16px;font-size:19px;color:var(--blue);border-top:.5px solid var(--sep);text-align:center}
+.acts .grp > button:first-child{border-top:0}
+.acts .title + button{border-top:.5px solid var(--sep)}
+.acts button.on::after{content:" ✓"}
+.acts button.danger{color:var(--danger)}
+.acts .cancel button{font-weight:600}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>
+"use strict";
+// ================= Dữ liệu =================
+const KEY = "smsbubble.v1";
+let db = { conversations: [], messages: [] };
+try { const raw = localStorage.getItem(KEY); if (raw) db = JSON.parse(raw); } catch (e) {}
+db.conversations = db.conversations || []; db.messages = db.messages || [];
+let lastId = Math.max(0, ...db.conversations.map(c => c.id), ...db.messages.map(m => m.id));
+function nextId(){ lastId = Math.max(Date.now(), lastId + 1); return lastId; }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { alert("Không lưu được dữ liệu: " + e.message); } }
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+// Trạng thái ô soạn tin (theo từng cuộc trò chuyện)
+const compose = {}; // cid -> {out, time, draft}
+function cs(cid){ return compose[cid] || (compose[cid] = { out: true, time: null, draft: "" }); }
+
+// ================= Ngày giờ =================
+const pad = n => String(n).padStart(2, "0");
+const wd = d => d.getDay() === 0 ? "Chủ nhật" : "Thứ " + (d.getDay() + 1);
+const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+function headerParts(ts){ const d = new Date(ts); return [hm(d), `${wd(d)}, ${d.getDate()} thg ${d.getMonth() + 1}`]; }
+function headerLabel(ts){ return headerParts(ts).join(" "); }
+function sameDay(a, b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function listLabel(ts){
+  const d = new Date(ts), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+  if (sameDay(d, now)) return hm(d);
+  if (sameDay(d, y)) return "Hôm qua";
+  const days = (new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5;
+  if (days > 0 && days < 7) return wd(d);
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(2)}`;
+}
+function fullLabel(ts){ const d = new Date(ts); return `${wd(d)}, ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} lúc ${hm(d)}`; }
+function inputFmt(ts){ const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${hm(d)}`; }
+function mk(y, mo, d, h, mi){
+  const t = new Date(y, mo - 1, d, h, mi);
+  if (t.getFullYear()!==y || t.getMonth()!==mo-1 || t.getDate()!==d || h>23 || mi>59) return null;
+  return t.getTime();
+}
+/** Đọc ngày giờ gõ tay: 17/10/2026 16:24 · 17-10-2026 16:24 · 16:24 17/10/2026 · hoặc chỉ ngày. */
+function parseUser(s, fallbackTs){
+  s = s.trim().replace(/\s+/g, " ");
+  let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})(?: (\d{1,2}):(\d{2}))?$/);
+  if (m) {
+    const f = new Date(fallbackTs);
+    return mk(+m[3], +m[2], +m[1], m[4] != null ? +m[4] : f.getHours(), m[5] != null ? +m[5] : f.getMinutes());
+  }
+  m = s.match(/^(\d{1,2}):(\d{2}) (\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (m) return mk(+m[5], +m[4], +m[3], +m[1], +m[2]);
+  return null;
+}
+
+// ================= Tiện ích =================
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = (sel, root = document) => root.querySelector(sel);
+function initials(name){
+  const w = name.trim().split(/\s+/).filter(x => /\p{L}/u.test(x[0] || ""));
+  if (w.length === 0) return "";
+  if (w.length === 1) return w[0][0].toUpperCase();
+  return (w[0][0] + w[w.length - 1][0]).toUpperCase();
+}
+const SILHOUETTE = `<svg viewBox="0 0 100 100"><circle cx="50" cy="40" r="19" fill="#fff"/><path d="M13 104C13 76 31 64 50 64s37 12 37 40z" fill="#fff"/></svg>`;
+function avatar(name, size){
+  // Tên một từ (tên đầu số, số điện thoại) -> hình người như iPhone; tên nhiều từ -> chữ cái đầu.
+  const ini = /\s/.test(name.trim()) ? initials(name) : "";
+  return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.4)}px">${ini ? esc(ini) : SILHOUETTE}</div>`;
+}
+function displayName(c){ return (c.name || "").trim() || (c.phone || "").trim() || "Không tên"; }
+function shortName(name){ const w = name.trim().split(/\s+/).filter(x => /\p{L}/u.test(x)); return (w[w.length-1] || "Họ").slice(0, 14); }
+
+const URL_RE = /\b(?:https?:\/\/|www\.)[^\s]*[^\s.,;:!?)"']/gi;
+const MONEY_RE = /\b(?:USD|AED|EUR|GBP|CNY|JPY|VND|SGD|AUD|CAD|KRW|THB|HKD|INR|CHF|RUB)\s?\d[\d,]*(?:\.\d+)?/g;
+/** Link -> xanh gạch chân; số tiền có mã tiền tệ -> gạch chân (giống iPhone tự nhận diện). */
+function richText(text){
+  const marks = [];
+  for (const m of text.matchAll(URL_RE)) marks.push([m.index, m.index + m[0].length, "lk"]);
+  for (const m of text.matchAll(MONEY_RE)) {
+    const a = m.index, b = a + m[0].length;
+    if (!marks.some(([x, y]) => a < y && b > x)) marks.push([a, b, "mn"]);
+  }
+  marks.sort((p, q) => p[0] - q[0]);
+  let out = "", pos = 0;
+  for (const [a, b, cls] of marks) { out += esc(text.slice(pos, a)) + `<span class="${cls}">${esc(text.slice(a, b))}</span>`; pos = b; }
+  return out + esc(text.slice(pos));
+}
+
+const IC = {
+  back: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>`,
+  chev: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>`,
+  more: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`,
+  plus: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>`,
+  mic: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>`,
+  up: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>`,
+  compose: `<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>`,
+};
+
+// ================= Điều hướng =================
+function route(){ const m = location.hash.match(/^#\/c\/(\d+)/); return m ? +m[1] : null; }
+window.addEventListener("hashchange", render);
+function openChat(id){ location.hash = "#/c/" + id; }
+function goBack(){ if (history.length > 1 && route() != null) history.back(); else location.hash = ""; }
+
+// ================= Màn hình danh sách =================
+function renderList(){
+  const rows = db.conversations.map(c => {
+    const msgs = db.messages.filter(m => m.cid === c.id);
+    const last = msgs.reduce((a, m) => (!a || m.ts > a.ts || (m.ts === a.ts && m.id > a.id)) ? m : a, null);
+    return { c, last };
+  }).sort((a, b) => (b.last ? b.last.ts : b.c.id) - (a.last ? a.last.ts : a.c.id));
+
+  $("#app").innerHTML = `
+    <div class="list-top">
+      <button class="icon-btn" id="listMore" aria-label="Tuỳ chọn">${IC.more}</button>
+      <button class="icon-btn" id="newConv" aria-label="Tin nhắn mới">${IC.compose}</button>
+    </div>
+    <div class="big-title">Tin nhắn</div>
+    <div class="convs">${rows.length ? rows.map(({ c, last }) => `
+      <div class="row" data-id="${c.id}">
+        ${avatar(displayName(c), 46)}
+        <div class="body">
+          <div class="line1"><span class="name">${esc(displayName(c))}</span>
+            ${last ? `<span class="when">${listLabel(last.ts)}</span>` : ""}<span class="chev">${IC.chev}</span></div>
+          <div class="prev">${last ? esc(last.text) : "Chưa có tin nhắn"}</div>
+        </div>
+      </div>`).join("") :
+      `<div class="empty">Chưa có cuộc trò chuyện nào.<br>Bấm biểu tượng bút ở góc trên để tạo mới.<br><br>Nhấn giữ một cuộc trò chuyện để xoá.</div>`}
+    </div>`;
+
+  $("#newConv").onclick = () => contactSheet(null);
+  $("#listMore").onclick = () => actionSheet(null, [
+    { label: "Sao lưu dữ liệu (tải file)", run: exportData },
+    { label: "Khôi phục từ file sao lưu", run: () => $("#importFile").click() },
+  ]);
+  document.querySelectorAll(".row").forEach(el => {
+    const id = +el.dataset.id;
+    onPress(el, () => openChat(id), () => {
+      const c = db.conversations.find(x => x.id === id);
+      actionSheet(displayName(c), [{ label: "Xoá cuộc trò chuyện", danger: true, run: () => deleteConv(id) }]);
+    });
+  });
+}
+
+// ================= Màn hình chat =================
+function buildItems(msgs){
+  const HOUR = 36e5, out = [];
+  const needHeader = (p, c) => !p || c.ts - p.ts > HOUR || !sameDay(new Date(p.ts), new Date(c.ts));
+  msgs.forEach((m, i) => {
+    const p = msgs[i - 1], n = msgs[i + 1], h = needHeader(p, m);
+    if (h) out.push({ header: m.ts });
+    out.push({ m, first: h || p.out !== m.out, last: !n || n.out !== m.out || needHeader(m, n) });
+  });
+  return out;
+}
+
+function renderChat(cid){
+  const c = db.conversations.find(x => x.id === cid);
+  if (!c) { location.hash = ""; return; }
+  const name = displayName(c), st = cs(cid);
+  const msgs = db.messages.filter(m => m.cid === cid).sort((a, b) => a.ts - b.ts || a.id - b.id);
+  const items = buildItems(msgs);
+
+  $("#app").innerHTML = `
+    <div class="chat">
+      <div class="msgs" id="msgs">${items.length ? items.map(it => {
+        if (it.header) { const [t, d] = headerParts(it.header); return `<div class="time">${t} <b>${d}</b></div>`; }
+        const m = it.m;
+        return `<div class="m ${m.out ? "out" : "in"}${it.first ? " first" : ""}${it.last ? " tail" : ""}" data-id="${m.id}"><div class="bubble">${richText(m.text)}</div></div>`;
+      }).join("") : `<div class="empty">Chưa có tin nhắn.<br>Bấm <b>+</b> để chọn người gửi và ngày giờ, rồi nhập nội dung.<br>Nhấn giữ một bong bóng để sửa hoặc xoá.</div>`}</div>
+      <div class="hdr">
+        <button class="circle glass back" id="back" aria-label="Quay lại">${IC.back}</button>
+        <div class="who" id="who">${avatar(name, 66)}<div class="pill glass"><span>${esc(name)}</span>${IC.chev}</div></div>
+        <button class="circle glass more" id="more" aria-label="Tuỳ chọn">${IC.more}</button>
+      </div>
+    </div>
+    <div class="composer">
+      <button class="circle glass plus" id="plus" aria-label="Người gửi và thời gian">${IC.plus}</button>
+      <div class="field glass">
+        <textarea id="ta" rows="1" placeholder="${esc(placeholder(st, name))}"></textarea>
+        <span id="act"></span>
+      </div>
+    </div>`;
+
+  const list = $("#msgs");
+  list.scrollTop = list.scrollHeight;
+  $("#back").onclick = goBack;
+  $("#who").onclick = () => contactSheet(c);
+  $("#more").onclick = () => actionSheet(null, [
+    { label: "Sửa tên / số điện thoại", run: () => contactSheet(c) },
+    { label: "Xoá cuộc trò chuyện", danger: true, run: () => deleteConv(cid) },
+  ]);
+  $("#plus").onclick = () => actionSheet("Tin nhắn tiếp theo", [
+    { label: "Tôi gửi (bên phải)", on: st.out, run: () => { st.out = true; refreshComposer(cid); } },
+    { label: `${shortName(name)} gửi (bên trái)`, on: !st.out, run: () => { st.out = false; refreshComposer(cid); } },
+    { label: st.time ? "Ngày giờ: " + headerLabel(st.time) : "Chọn ngày giờ…", run: () => timeSheet(st.time, true, v => { st.time = v; refreshComposer(cid); }) },
+    ...(st.time ? [{ label: "Dùng giờ hiện tại", run: () => { st.time = null; refreshComposer(cid); } }] : []),
+  ]);
+
+  const ta = $("#ta");
+  ta.value = st.draft;
+  const fit = () => { ta.style.height = "48px"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; };
+  const act = () => {
+    $("#act").innerHTML = ta.value.trim() ? `<button class="send" id="send" aria-label="Gửi">${IC.up}</button>` : `<span class="mic">${IC.mic}</span>`;
+    const b = $("#send"); if (b) { b.onmousedown = e => e.preventDefault(); b.onclick = send; }
+  };
+  ta.oninput = () => { st.draft = ta.value; fit(); act(); };
+  fit(); act();
+
+  function send(){
+    const t = ta.value.trim(); if (!t) return;
+    const ts = st.time ?? Date.now();
+    db.messages.push({ id: nextId(), cid, text: t, out: st.out, ts });
+    save();
+    st.draft = "";
+    if (st.time != null) st.time = ts + 60000; // giữ đúng thứ tự cho tin tiếp theo
+    const focused = document.activeElement === ta;
+    renderChat(cid);
+    if (focused) $("#ta").focus();
+  }
+
+  list.querySelectorAll(".m").forEach(el => {
+    const id = +el.dataset.id;
+    onPress(el, null, () => { const m = db.messages.find(x => x.id === id); if (m) editSheet(m, name); }, true);
+  });
+}
+
+function placeholder(st, name){
+  if (st.out && st.time == null) return "Tin nhắn văn bản • SMS";
+  return (st.out ? "Tôi" : shortName(name)) + " • " + (st.time != null ? headerLabel(st.time) : "bây giờ");
+}
+function refreshComposer(cid){
+  const c = db.conversations.find(x => x.id === cid), ta = $("#ta");
+  if (c && ta) ta.placeholder = placeholder(cs(cid), displayName(c));
+}
+
+function deleteConv(id){
+  confirmSheet("Xoá cuộc trò chuyện?", "Toàn bộ tin nhắn trong cuộc trò chuyện này sẽ bị xoá.", "Xoá", () => {
+    db.conversations = db.conversations.filter(c => c.id !== id);
+    db.messages = db.messages.filter(m => m.cid !== id);
+    save();
+    if (route() === id) location.hash = ""; else render();
+  });
+}
+
+// ================= Nhấn / nhấn giữ =================
+function onPress(el, onTap, onLong, pressedClass){
+  let timer = null, sx = 0, sy = 0, fired = false;
+  const clear = () => { clearTimeout(timer); timer = null; if (pressedClass) el.classList.remove("pressed"); };
+  el.addEventListener("pointerdown", e => {
+    fired = false; sx = e.clientX; sy = e.clientY;
+    if (pressedClass) el.classList.add("pressed");
+    timer = setTimeout(() => { fired = true; clear(); if (navigator.vibrate) navigator.vibrate(10); onLong(); }, 450);
+  });
+  el.addEventListener("pointermove", e => { if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) clear(); });
+  el.addEventListener("pointerup", clear);
+  el.addEventListener("pointercancel", clear);
+  el.addEventListener("pointerleave", clear);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("click", () => { if (!fired && onTap) onTap(); });
+}
+
+// ================= Sheet =================
+function overlay(inner, cls){
+  const s = document.createElement("div");
+  s.className = "scrim";
+  s.innerHTML = `<div class="${cls}">${inner}</div>`;
+  s.addEventListener("click", e => { if (e.target === s) s.remove(); });
+  document.body.appendChild(s);
+  return s;
+}
+function actionSheet(title, actions){
+  const s = overlay(`<div class="grp">${title ? `<div class="title">${esc(title)}</div>` : ""}${
+    actions.map((a, i) => `<button data-i="${i}" class="${a.danger ? "danger" : ""}${a.on ? " on" : ""}">${esc(a.label)}</button>`).join("")
+  }</div><div class="grp cancel"><button data-x>Huỷ</button></div>`, "acts");
+  s.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { s.remove(); actions[+b.dataset.i].run(); });
+  $("[data-x]", s).onclick = () => s.remove();
+}
+function confirmSheet(title, text, okLabel, onOk){
+  const s = overlay(`<h3>${esc(title)}</h3><div class="hint" style="text-align:center">${esc(text)}</div>
+    <div class="btns"><button class="btn" data-x>Huỷ</button><button class="btn danger" data-ok>${esc(okLabel)}</button></div>`, "sheet");
+  $("[data-x]", s).onclick = () => s.remove();
+  $("[data-ok]", s).onclick = () => { s.remove(); onOk(); };
+}
+
+function contactSheet(c){
+  const s = overlay(`<h3>${c ? "Sửa liên hệ" : "Cuộc trò chuyện mới"}</h3>
+    <div class="lbl">Tên hiển thị</div><input class="inp" id="cName" placeholder="Ví dụ: Nguyễn An hoặc tên đầu số" value="${esc(c ? c.name || "" : "")}">
+    <div class="lbl">Số điện thoại</div><input class="inp" id="cPhone" type="tel" placeholder="Không bắt buộc" value="${esc(c ? c.phone || "" : "")}">
+    <div class="btns"><button class="btn" data-x>Huỷ</button><button class="btn primary" data-ok>${c ? "Lưu" : "Tạo"}</button></div>`, "sheet");
+  const ok = $("[data-ok]", s), n = $("#cName", s), p = $("#cPhone", s);
+  const check = () => ok.disabled = !(n.value.trim() || p.value.trim());
+  n.oninput = p.oninput = check; check();
+  $("[data-x]", s).onclick = () => s.remove();
+  ok.onclick = () => {
+    if (c) { c.name = n.value.trim(); c.phone = p.value.trim(); save(); s.remove(); render(); }
+    else { const id = nextId(); db.conversations.push({ id, name: n.value.trim(), phone: p.value.trim() }); save(); s.remove(); openChat(id); }
+  };
+  setTimeout(() => n.focus(), 250);
+}
+
+/** Chọn hoặc gõ ngày giờ. onDone(ts) — ts = null nghĩa là "giờ hiện tại". */
+function timeSheet(initial, allowNow, onDone){
+  let ts = initial ?? Date.now();
+  { const d = new Date(ts); d.setSeconds(0, 0); ts = d.getTime(); }
+  const s = overlay(`<h3>Thời gian tin nhắn</h3>
+    <div class="lbl">Gõ ngày giờ (dd/MM/yyyy HH:mm)</div>
+    <input class="inp" id="tText" inputmode="text" autocomplete="off" value="${inputFmt(ts)}">
+    <div class="hint" id="tHint"></div>
+    <div class="lbl">Hoặc chọn</div>
+    <div class="two"><input class="inp" type="date" id="tDate"><input class="inp" type="time" id="tTime"></div>
+    <div class="btns">${allowNow ? `<button class="btn" data-now>Giờ hiện tại</button>` : `<button class="btn" data-x>Huỷ</button>`}<button class="btn primary" data-ok>Xong</button></div>`, "sheet");
+  const tx = $("#tText", s), dt = $("#tDate", s), tm = $("#tTime", s), hint = $("#tHint", s), ok = $("[data-ok]", s);
+  const syncPickers = () => { const d = new Date(ts); dt.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; tm.value = hm(d); };
+  const good = () => { tx.classList.remove("err"); hint.classList.remove("err"); hint.textContent = fullLabel(ts) + "  →  " + headerLabel(ts); ok.disabled = false; };
+  syncPickers(); good();
+  tx.oninput = () => {
+    const v = parseUser(tx.value, ts);
+    if (v != null) { ts = v; syncPickers(); good(); }
+    else { tx.classList.add("err"); hint.classList.add("err"); hint.textContent = "Sai định dạng hoặc ngày không có thật — ví dụ 13/11/2026 11:39"; ok.disabled = true; }
+  };
+  const fromPickers = () => {
+    const [y, mo, d] = (dt.value || "").split("-").map(Number), [h, mi] = (tm.value || "").split(":").map(Number);
+    const v = (y && mo && d && h != null && mi != null) ? mk(y, mo, d, h || 0, mi || 0) : null;
+    if (v != null) { ts = v; tx.value = inputFmt(ts); good(); }
+  };
+  dt.onchange = tm.onchange = dt.oninput = tm.oninput = fromPickers;
+  const x = $("[data-x]", s); if (x) x.onclick = () => s.remove();
+  const now = $("[data-now]", s); if (now) now.onclick = () => { s.remove(); onDone(null); };
+  ok.onclick = () => { s.remove(); onDone(ts); };
+}
+
+function editSheet(m, otherName){
+  let out = m.out, ts = m.ts;
+  const s = overlay(`<h3>Sửa tin nhắn</h3>
+    <textarea class="inp" id="eText">${esc(m.text)}</textarea>
+    <div class="lbl">Người gửi</div>
+    <div class="seg"><button data-o="1">Tôi (phải)</button><button data-o="0">${esc(shortName(otherName))} (trái)</button></div>
+    <div class="lbl">Thời gian</div>
+    <button class="inp" id="eTime" style="text-align:left"></button>
+    <div class="btns"><button class="btn danger" data-del>Xoá</button><button class="btn" data-x>Huỷ</button><button class="btn primary" data-ok>Lưu</button></div>`, "sheet");
+  const seg = () => s.querySelectorAll("[data-o]").forEach(b => b.classList.toggle("on", (b.dataset.o === "1") === out));
+  const showT = () => $("#eTime", s).textContent = headerLabel(ts) + "  ·  " + inputFmt(ts);
+  s.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { out = b.dataset.o === "1"; seg(); });
+  seg(); showT();
+  $("#eTime", s).onclick = () => timeSheet(ts, false, v => { if (v != null) { ts = v; showT(); } });
+  $("[data-x]", s).onclick = () => s.remove();
+  $("[data-del]", s).onclick = () => { s.remove(); db.messages = db.messages.filter(x => x.id !== m.id); save(); render(); };
+  $("[data-ok]", s).onclick = () => {
+    const t = $("#eText", s).value.trim(); if (!t) return;
+    m.text = t; m.out = out; m.ts = ts; save(); s.remove(); render();
+  };
+}
+
+// ================= Sao lưu / khôi phục =================
+function exportData(){
+  const blob = new Blob([JSON.stringify(db, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `smsbubble-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+$("#importFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!Array.isArray(data.conversations) || !Array.isArray(data.messages)) throw new Error("File không đúng định dạng");
+    confirmSheet("Khôi phục dữ liệu?", "Dữ liệu hiện tại trên máy này sẽ được thay bằng nội dung file sao lưu.", "Khôi phục", () => {
+      db = { conversations: data.conversations, messages: data.messages };
+      lastId = Math.max(0, ...db.conversations.map(c => c.id), ...db.messages.map(m => m.id));
+      save(); location.hash = ""; render();
+    });
+  } catch (err) { alert("Không đọc được file: " + err.message); }
+};
+
+// ================= Bàn phím iOS: giữ ô soạn tin ngay trên bàn phím =================
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const fix = () => {
+    document.documentElement.style.setProperty("--vh", vv.height + "px");
+    window.scrollTo(0, 0);
+    const list = $("#msgs"); if (list && document.activeElement && document.activeElement.id === "ta") list.scrollTop = list.scrollHeight;
+  };
+  vv.addEventListener("resize", fix); fix();
+}
+
+function render(){ const id = route(); if (id != null) renderChat(id); else renderList(); }
+render();
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
