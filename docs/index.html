@@ -78,20 +78,19 @@ svg{display:block}
 .m{display:flex;margin-top:2px}
 .m.first{margin-top:6px}
 .m.out{justify-content:flex-end}
-.bubble{position:relative;max-width:78%;padding:9px 14px;border-radius:20px;font-size:17px;line-height:22px;
+.bubble{position:relative;max-width:72%;padding:10px 15px;border-radius:21px;font-size:17px;line-height:22px;
   white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.m.in .bubble{background:var(--in);color:var(--text);margin-left:6px}
-.m.out .bubble{background:var(--out);color:#fff;margin-right:6px}
+.m.in .bubble{background:var(--in);color:var(--text)}
+.m.out .bubble{background:var(--out);color:#fff}
 .bubble .lk{color:var(--link);text-decoration:underline}
 .m.out .bubble .lk{color:#fff}
 .bubble .mn{text-decoration:underline}
-/* đuôi bong bóng kiểu iPhone */
-.m.tail .bubble::before,.m.tail .bubble::after{content:"";position:absolute;bottom:0;height:20px}
-.m.in.tail .bubble::before{left:-7px;width:20px;background:var(--in);border-bottom-right-radius:16px}
-.m.in.tail .bubble::after{left:-26px;width:26px;background:var(--bg);border-bottom-right-radius:10px}
-.m.out.tail .bubble::before{right:-7px;width:20px;background:var(--out);border-bottom-left-radius:16px}
-.m.out.tail .bubble::after{right:-26px;width:26px;background:var(--bg);border-bottom-left-radius:10px}
+/* đuôi bong bóng kiểu iPhone: thòng xuống dưới đáy, lùi vào ~9px so với mép */
+.m.tail{margin-bottom:10px}
+.bubble .tl{position:absolute;bottom:-8px;width:26px;height:14px;overflow:visible;pointer-events:none}
+.m.in .bubble .tl{left:0;color:var(--in)}
+.m.out .bubble .tl{right:0;color:var(--out);transform:scaleX(-1)}
 .m.pressed .bubble{filter:brightness(.92)}
 
 /* ---------- Ô soạn tin ---------- */
@@ -164,7 +163,7 @@ function cs(cid){ return compose[cid] || (compose[cid] = { out: true, time: null
 
 // ================= Ngày giờ =================
 const pad = n => String(n).padStart(2, "0");
-const wd = d => d.getDay() === 0 ? "Chủ nhật" : "Thứ " + (d.getDay() + 1);
+const wd = d => d.getDay() === 0 ? "CN" : "Thứ " + (d.getDay() + 1);
 const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
 function headerParts(ts){ const d = new Date(ts); return [hm(d), `${wd(d)}, ${d.getDate()} thg ${d.getMonth() + 1}`]; }
 function headerLabel(ts){ return headerParts(ts).join(" "); }
@@ -231,6 +230,7 @@ function richText(text){
   return out + esc(text.slice(pos));
 }
 
+const TAIL = `<svg class="tl" viewBox="0 -6 26 14"><path fill="currentColor" d="M11.5 -6L11 0C11 3 10.2 5.5 9 7C8.6 7.6 9.3 7.9 10 7.6C14.5 6 19.5 3 24.5 0L24.5 -6Z"/></svg>`;
 const IC = {
   back: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>`,
   chev: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>`,
@@ -311,7 +311,7 @@ function renderChat(cid){
       <div class="msgs" id="msgs">${items.length ? items.map(it => {
         if (it.header) { const [t, d] = headerParts(it.header); return `<div class="time">${t} <b>${d}</b></div>`; }
         const m = it.m;
-        return `<div class="m ${m.out ? "out" : "in"}${it.first ? " first" : ""}${it.last ? " tail" : ""}" data-id="${m.id}"><div class="bubble">${richText(m.text)}</div></div>`;
+        return `<div class="m ${m.out ? "out" : "in"}${it.first ? " first" : ""}${it.last ? " tail" : ""}" data-id="${m.id}"><div class="bubble">${richText(m.text)}${it.last ? TAIL : ""}</div></div>`;
       }).join("") : `<div class="empty">Chưa có tin nhắn.<br>Bấm <b>+</b> để chọn người gửi và ngày giờ, rồi nhập nội dung.<br>Nhấn giữ một bong bóng để sửa hoặc xoá.</div>`}</div>
       <div class="hdr">
         <button class="circle glass back" id="back" aria-label="Quay lại">${IC.back}</button>

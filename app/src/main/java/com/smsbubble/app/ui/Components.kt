@@ -112,14 +112,14 @@ fun StyleMenuItems(current: BubbleStyle, onSelect: (BubbleStyle) -> Unit) {
 }
 
 /**
- * Hình bong bóng kiểu iPhone: bo tròn 18dp, tin cuối mỗi nhóm có "đuôi" cong
- * ở góc dưới (bên phải với tin gửi đi, bên trái với tin nhận).
- * Đuôi vẽ tràn ra ngoài khung một chút nên cần chừa khoảng trống bên cạnh bong bóng.
+ * Hình bong bóng kiểu iPhone (đo từ ảnh chụp iOS): bo góc 21dp; tin cuối mỗi nhóm có "đuôi"
+ * thòng xuống dưới đáy, lùi vào ~9dp so với mép (trái với tin nhận, phải với tin gửi),
+ * đầu đuôi thấp hơn đáy ~7.5dp. Đuôi vẽ tràn xuống dưới khung nên cần chừa ~8dp bên dưới.
  */
 class IosBubbleShape(
     private val outgoing: Boolean,
     private val tail: Boolean,
-    private val radius: Dp = 18.dp,
+    private val radius: Dp = 21.dp,
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val w = size.width
@@ -130,15 +130,18 @@ class IosBubbleShape(
         }
         if (!tail) return Outline.Generic(body)
 
-        val t = with(density) { 6.dp.toPx() }
-        // Toạ độ x được lật đối xứng cho tin nhận (đuôi bên trái).
-        fun x(v: Float) = if (outgoing) v else w - v
+        val u = density.density // 1dp tính bằng px
+        // Toạ độ theo dp, gốc ở góc dưới-trái của bong bóng; lật ngang cho tin gửi đi.
+        fun x(v: Float) = if (outgoing) w - v * u else v * u
+        fun y(v: Float) = h + v * u
 
         val tailPath = Path().apply {
-            moveTo(x(w - r), h - r)
-            lineTo(x(w), h - r)
-            cubicTo(x(w), h - r * 0.35f, x(w + t * 0.35f), h - t * 0.15f, x(w + t), h)
-            cubicTo(x(w - t * 0.4f), h + 0.5f, x(w - r * 0.55f), h - 0.5f, x(w - r), h - r * 0.12f)
+            moveTo(x(11.5f), y(-6f))
+            lineTo(x(11f), y(0f))
+            cubicTo(x(11f), y(3f), x(10.2f), y(5.5f), x(9f), y(7f))
+            cubicTo(x(8.6f), y(7.6f), x(9.3f), y(7.9f), x(10f), y(7.6f))
+            cubicTo(x(14.5f), y(6f), x(19.5f), y(3f), x(24.5f), y(0f))
+            lineTo(x(24.5f), y(-6f))
             close()
         }
         val result = Path()

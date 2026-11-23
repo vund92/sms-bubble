@@ -28,9 +28,9 @@ fun LocalDateTime.toMillis(): Long =
 private fun weekday(d: LocalDate): String =
     d.dayOfWeek.getDisplayName(TextStyle.FULL, VI).replaceFirstChar { it.uppercase(VI) }
 
-/** "Thứ 2" … "Thứ 7", "Chủ nhật". */
+/** "Thứ 2" … "Thứ 7", "CN" — giống iPhone. */
 private fun weekdayShort(d: LocalDate): String =
-    if (d.dayOfWeek.value == 7) "Chủ nhật" else "Thứ ${d.dayOfWeek.value + 1}"
+    if (d.dayOfWeek.value == 7) "CN" else "Thứ ${d.dayOfWeek.value + 1}"
 
 /** Nhãn thời gian ở giữa khung chat, ví dụ "15:23 Thứ 2, 13 thg 7". */
 fun headerLabel(ts: Long): String {

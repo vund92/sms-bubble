@@ -319,7 +319,7 @@ private fun styledMessage(text: String, linkColor: Color): AnnotatedString = bui
 @Composable
 private fun IosBubble(item: ChatItem.Bubble, palette: BubblePalette, onLongClick: () -> Unit) {
     val m = item.msg
-    val maxWidth = (LocalConfiguration.current.screenWidthDp * 0.78f).dp
+    val maxWidth = (LocalConfiguration.current.screenWidthDp * 0.72f).dp
     val textColor = if (m.outgoing) palette.outText else palette.inText
     val linkColor = if (m.outgoing) palette.outText else iosLink()
     val styled = remember(m.text, linkColor) { styledMessage(m.text, linkColor) }
@@ -327,16 +327,15 @@ private fun IosBubble(item: ChatItem.Bubble, palette: BubblePalette, onLongClick
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(top = if (item.first) 3.dp else 2.dp, bottom = if (item.last) 3.dp else 0.dp),
+            .padding(top = if (item.first) 3.dp else 2.dp, bottom = if (item.last) 10.dp else 0.dp),
         horizontalAlignment = if (m.outgoing) Alignment.End else Alignment.Start,
     ) {
         Box(
             Modifier
-                .padding(start = if (m.outgoing) 0.dp else 6.dp, end = if (m.outgoing) 6.dp else 0.dp)
                 .widthIn(max = maxWidth)
                 .background(
                     if (m.outgoing) palette.outBg else palette.inBg,
-                    IosBubbleShape(outgoing = m.outgoing, tail = item.last, radius = 20.dp),
+                    IosBubbleShape(outgoing = m.outgoing, tail = item.last),
                 )
                 .combinedClickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -344,9 +343,9 @@ private fun IosBubble(item: ChatItem.Bubble, palette: BubblePalette, onLongClick
                     onClick = {},
                     onLongClick = onLongClick,
                 )
-                .padding(horizontal = 14.dp, vertical = 9.dp)
+                .padding(horizontal = 15.dp, vertical = 10.dp)
         ) {
-            Text(styled, color = textColor, fontSize = 17.sp, lineHeight = 23.sp)
+            Text(styled, color = textColor, fontSize = 17.sp, lineHeight = 22.sp)
         }
     }
 }
