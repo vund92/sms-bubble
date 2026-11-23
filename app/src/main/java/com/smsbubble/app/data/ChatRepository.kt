@@ -98,8 +98,12 @@ class ChatRepository(context: Context) {
         return lastId
     }
 
-    private fun save() {
+    /** Toàn bộ dữ liệu dạng JSON — dùng cho file lưu nội bộ và file sao lưu. */
+    @Synchronized
+    fun exportJson(): String {
         val root = JSONObject()
+        root.put("app", "SmsBubble")
+        root.put("version", 1)
         root.put("conversations", JSONArray().apply {
             _conversations.value.forEach { c ->
                 put(
@@ -122,7 +126,26 @@ class ChatRepository(context: Context) {
                 )
             }
         })
-        val json = root.toString()
+        return root.toString()
+    }
+
+    /**
+     * Thay toàn bộ dữ liệu bằng nội dung file sao lưu.
+     * Đọc được cả file từ app Android lẫn file từ bản web (khoá cid/out/ts).
+     * @return số tin nhắn đã nhập.
+     */
+    @Synchronized
+    fun importJson(json: String): Int {
+        val (convs, msgs) = parse(json)
+        _conversations.value = convs
+        _messages.value = msgs
+        lastId = maxOf(lastId, convs.maxOfOrNull { it.id } ?: 0L, msgs.maxOfOrNull { it.id } ?: 0L)
+        save()
+        return msgs.size
+    }
+
+    private fun save() {
+        val json = exportJson()
         io.execute {
             try {
                 val tmp = File(file.parentFile, "chats.json.tmp")
@@ -140,31 +163,7 @@ class ChatRepository(context: Context) {
     private fun load() {
         if (!file.exists()) return
         try {
-            val root = JSONObject(file.readText())
-            val convs = mutableListOf<Conversation>()
-            root.optJSONArray("conversations")?.let { arr ->
-                for (i in 0 until arr.length()) {
-                    val o = arr.getJSONObject(i)
-                    convs += Conversation(
-                        id = o.getLong("id"),
-                        name = o.optString("name"),
-                        phone = o.optString("phone"),
-                    )
-                }
-            }
-            val msgs = mutableListOf<Message>()
-            root.optJSONArray("messages")?.let { arr ->
-                for (i in 0 until arr.length()) {
-                    val o = arr.getJSONObject(i)
-                    msgs += Message(
-                        id = o.getLong("id"),
-                        conversationId = o.getLong("conversationId"),
-                        text = o.optString("text"),
-                        outgoing = o.optBoolean("outgoing", true),
-                        timestamp = o.getLong("timestamp"),
-                    )
-                }
-            }
+            val (convs, msgs) = parse(file.readText())
             _conversations.value = convs
             _messages.value = msgs
             lastId = maxOf(
@@ -174,6 +173,35 @@ class ChatRepository(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Không đọc được dữ liệu", e)
         }
+    }
+
+    private fun parse(json: String): Pair<List<Conversation>, List<Message>> {
+        val root = JSONObject(json)
+        val convArr = root.optJSONArray("conversations")
+            ?: throw IllegalArgumentException("File không đúng định dạng sao lưu SMS Bubble")
+        val convs = mutableListOf<Conversation>()
+        for (i in 0 until convArr.length()) {
+            val o = convArr.getJSONObject(i)
+            convs += Conversation(
+                id = o.getLong("id"),
+                name = o.optString("name"),
+                phone = o.optString("phone"),
+            )
+        }
+        val msgs = mutableListOf<Message>()
+        root.optJSONArray("messages")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                msgs += Message(
+                    id = o.getLong("id"),
+                    conversationId = if (o.has("conversationId")) o.getLong("conversationId") else o.getLong("cid"),
+                    text = o.optString("text"),
+                    outgoing = if (o.has("outgoing")) o.optBoolean("outgoing", true) else o.optBoolean("out", true),
+                    timestamp = if (o.has("timestamp")) o.getLong("timestamp") else o.getLong("ts"),
+                )
+            }
+        }
+        return convs to msgs
     }
 
     private companion object {

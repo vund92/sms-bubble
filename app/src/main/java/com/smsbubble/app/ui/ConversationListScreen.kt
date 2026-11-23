@@ -1,6 +1,12 @@
 package com.smsbubble.app.ui
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.platform.LocalContext
+import java.time.LocalDate
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -60,6 +66,35 @@ fun ConversationListScreen(vm: ChatViewModel, onOpen: (Long) -> Unit) {
     var showNew by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var toDelete by remember { mutableStateOf<Conversation?>(null) }
+    var pendingImport by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    // Sao lưu: người dùng chọn nơi lưu file (Tải xuống, Google Drive…)
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            val ok = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(vm.exportJson().toByteArray()) }
+                    ?: error("Không mở được file")
+            }.isSuccess
+            Toast.makeText(
+                context,
+                if (ok) "Đã sao lưu ${messages.size} tin nhắn" else "Sao lưu thất bại",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+    // Khôi phục: chọn file sao lưu, hỏi xác nhận rồi mới thay dữ liệu
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val text = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+            }.getOrNull()
+            if (text == null) Toast.makeText(context, "Không đọc được file", Toast.LENGTH_LONG).show()
+            else pendingImport = text
+        }
+    }
 
     // Mỗi cuộc trò chuyện kèm tin mới nhất, sắp xếp mới nhất lên đầu.
     val rows = remember(conversations, messages) {
@@ -71,9 +106,24 @@ fun ConversationListScreen(vm: ChatViewModel, onOpen: (Long) -> Unit) {
     val styleMenu: @Composable () -> Unit = {
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Filled.Palette, contentDescription = "Giao diện", tint = palette.accent)
+                Icon(Icons.Filled.MoreVert, contentDescription = "Tuỳ chọn", tint = palette.accent)
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("Sao lưu ra file") },
+                    onClick = {
+                        menuOpen = false
+                        exportLauncher.launch("smsbubble-${LocalDate.now()}.json")
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("Khôi phục từ file") },
+                    onClick = {
+                        menuOpen = false
+                        importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
+                    },
+                )
+                HorizontalDivider()
                 StyleMenuItems(style) {
                     vm.setStyle(it)
                     menuOpen = false
@@ -165,6 +215,26 @@ fun ConversationListScreen(vm: ChatViewModel, onOpen: (Long) -> Unit) {
                 showNew = false
                 onOpen(vm.addConversation(name, phone))
             },
+        )
+    }
+
+    pendingImport?.let { json ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("Khôi phục dữ liệu?") },
+            text = { Text("Toàn bộ tin nhắn hiện có trên máy này sẽ được thay bằng nội dung file sao lưu.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingImport = null
+                    val result = runCatching { vm.importJson(json) }
+                    Toast.makeText(
+                        context,
+                        result.fold({ "Đã khôi phục $it tin nhắn" }, { "File không hợp lệ: ${it.message}" }),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }) { Text("Khôi phục") }
+            },
+            dismissButton = { TextButton(onClick = { pendingImport = null }) { Text("Huỷ") } },
         )
     }
 

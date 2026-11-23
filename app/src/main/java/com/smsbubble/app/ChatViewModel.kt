@@ -26,4 +26,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateMessage(m: Message) = repo.updateMessage(m)
     fun deleteMessage(id: Long) = repo.deleteMessage(id)
+
+    fun exportJson(): String = repo.exportJson()
+    fun importJson(json: String): Int = repo.importJson(json)
 }

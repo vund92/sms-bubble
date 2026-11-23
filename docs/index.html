@@ -514,7 +514,14 @@ $("#importFile").onchange = async e => {
     const data = JSON.parse(await f.text());
     if (!Array.isArray(data.conversations) || !Array.isArray(data.messages)) throw new Error("File không đúng định dạng");
     confirmSheet("Khôi phục dữ liệu?", "Dữ liệu hiện tại trên máy này sẽ được thay bằng nội dung file sao lưu.", "Khôi phục", () => {
-      db = { conversations: data.conversations, messages: data.messages };
+      // Đọc được cả file sao lưu từ app Android (conversationId/outgoing/timestamp)
+      db = {
+        conversations: data.conversations.map(c => ({ id: +c.id, name: c.name || "", phone: c.phone || "" })),
+        messages: data.messages.map(m => ({
+          id: +m.id, cid: +(m.cid ?? m.conversationId), text: String(m.text ?? ""),
+          out: m.out ?? m.outgoing ?? true, ts: +(m.ts ?? m.timestamp),
+        })),
+      };
       lastId = Math.max(0, ...db.conversations.map(c => c.id), ...db.messages.map(m => m.id));
       save(); location.hash = ""; render();
     });
