@@ -2,6 +2,7 @@ package com.smsbubble.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -44,9 +45,12 @@ private val AvatarColors = listOf(
 /** Avatar tròn với chữ cái đầu. Kiểu iPhone: nền xám chuyển màu; kiểu Android: màu theo tên. */
 @Composable
 fun Avatar(name: String, size: Dp, style: BubbleStyle, modifier: Modifier = Modifier) {
-    val initials = remember(name) { initialsOf(name) }
+    val initials = remember(name, style) {
+        // iPhone hiện hình người cho tên một từ (vd: tên đầu số "ADCBAlert" hay số điện thoại).
+        if (style == BubbleStyle.IOS && !name.trim().contains(' ')) "" else initialsOf(name)
+    }
     val brush = if (style == BubbleStyle.IOS) {
-        Brush.verticalGradient(listOf(Color(0xFFA5ABB8), Color(0xFF858994)))
+        Brush.verticalGradient(listOf(Color(0xFFA9B2DC), Color(0xFF7C85BD)))
     } else {
         SolidColor(AvatarColors[Math.floorMod(name.hashCode(), AvatarColors.size)])
     }
@@ -62,7 +66,9 @@ fun Avatar(name: String, size: Dp, style: BubbleStyle, modifier: Modifier = Modi
                 Icons.Filled.Person,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(size * 0.62f),
+                modifier = Modifier
+                    .size(size * 0.8f)
+                    .offset(y = size * 0.12f),
             )
         } else {
             Text(

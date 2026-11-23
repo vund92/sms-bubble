@@ -18,6 +18,10 @@ val IosBlueLight = Color(0xFF007AFF)
 val IosBlueDark = Color(0xFF0A84FF)
 val IosGray = Color(0xFF8E8E93)
 private val IosIncomingLight = Color(0xFFE9E9EB)
+val IosSmsGreenLight = Color(0xFF34C759)
+val IosSmsGreenDark = Color(0xFF30D158)
+val IosLinkLight = Color(0xFF2E6BE6)
+val IosLinkDark = Color(0xFF4C8DFF)
 private val IosIncomingDark = Color(0xFF26252A)
 private val IosBarLight = Color(0xFFF6F6F6)
 private val IosBarDark = Color(0xFF1C1C1E)
@@ -69,12 +73,12 @@ fun bubblePalette(style: BubbleStyle): BubblePalette {
     val cs = MaterialTheme.colorScheme
     return when (style) {
         BubbleStyle.IOS -> if (dark) BubblePalette(
-            outBg = IosBlueDark, outText = Color.White,
+            outBg = IosSmsGreenDark, outText = Color.White,
             inBg = IosIncomingDark, inText = Color.White,
             chatBg = Color.Black, barBg = IosBarDark,
             meta = IosGray, accent = IosBlueDark,
         ) else BubblePalette(
-            outBg = IosBlueLight, outText = Color.White,
+            outBg = IosSmsGreenLight, outText = Color.White,
             inBg = IosIncomingLight, inText = Color.Black,
             chatBg = Color.White, barBg = IosBarLight,
             meta = IosGray, accent = IosBlueLight,

@@ -82,7 +82,7 @@ import com.smsbubble.app.data.Message
 // Ghép tin nhắn thành danh sách hiển thị (nhãn thời gian + bong bóng)
 // ======================================================================
 
-private sealed interface ChatItem {
+internal sealed interface ChatItem {
     val key: String
 
     data class Header(val label: String, val messageId: Long) : ChatItem {
@@ -165,56 +165,71 @@ fun ChatScreen(vm: ChatViewModel, conversationId: Long, onBack: () -> Unit) {
         StyleMenuItems(style) { close(); vm.setStyle(it) }
     }
 
-    Scaffold(
-        containerColor = palette.chatBg,
-        topBar = {
-            if (style == BubbleStyle.IOS) {
-                IosChatHeader(name, palette, onBack, onNameClick = { editContact = true }, menuItems)
-            } else {
-                AndroidChatTopBar(name, conversation.phone, onBack, menuItems)
-            }
-        },
-        bottomBar = {
-            Composer(
-                style = style,
-                palette = palette,
-                otherShortName = otherShort,
-                onSend = { text, outgoing, ts -> vm.addMessage(conversationId, text, outgoing, ts) },
-            )
-        },
-    ) { padding ->
-        if (chatItems.isEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "Chưa có tin nhắn.\nChọn ai gửi, chọn thời gian, rồi nhập nội dung bên dưới.\n" +
-                        "Nhấn giữ một bong bóng để sửa hoặc xoá.",
-                    color = palette.meta,
-                    textAlign = TextAlign.Center,
+    if (style == BubbleStyle.IOS) {
+        IosChatLayout(
+            name = name,
+            palette = palette,
+            chatItems = chatItems,
+            listState = listState,
+            otherShortName = otherShort,
+            onBack = onBack,
+            onNameClick = { editContact = true },
+            menuItems = menuItems,
+            onLongClick = { editing = it },
+            onSend = { text, outgoing, ts -> vm.addMessage(conversationId, text, outgoing, ts) },
+        )
+    } else {
+        Scaffold(
+            containerColor = palette.chatBg,
+            topBar = {
+                if (style == BubbleStyle.IOS) {
+                    IosChatHeader(name, palette, onBack, onNameClick = { editContact = true }, menuItems)
+                } else {
+                    AndroidChatTopBar(name, conversation.phone, onBack, menuItems)
+                }
+            },
+            bottomBar = {
+                Composer(
+                    style = style,
+                    palette = palette,
+                    otherShortName = otherShort,
+                    onSend = { text, outgoing, ts -> vm.addMessage(conversationId, text, outgoing, ts) },
                 )
-            }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-            ) {
-                items(chatItems, key = { it.key }) { item ->
-                    when (item) {
-                        is ChatItem.Header -> TimeHeader(item.label, palette)
-                        is ChatItem.Bubble -> MessageBubble(
-                            item = item,
-                            style = style,
-                            palette = palette,
-                            onLongClick = { editing = item.msg },
-                        )
+            },
+        ) { padding ->
+            if (chatItems.isEmpty()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Chưa có tin nhắn.\nChọn ai gửi, chọn thời gian, rồi nhập nội dung bên dưới.\n" +
+                            "Nhấn giữ một bong bóng để sửa hoặc xoá.",
+                        color = palette.meta,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                ) {
+                    items(chatItems, key = { it.key }) { item ->
+                        when (item) {
+                            is ChatItem.Header -> TimeHeader(item.label, palette)
+                            is ChatItem.Bubble -> MessageBubble(
+                                item = item,
+                                style = style,
+                                palette = palette,
+                                onLongClick = { editing = item.msg },
+                            )
+                        }
                     }
                 }
             }
