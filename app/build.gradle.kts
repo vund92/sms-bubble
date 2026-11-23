@@ -16,8 +16,22 @@ android {
         versionName = "1.0"
     }
 
+    // Khoá ký cố định: mọi bản build (trên GitHub hay máy khác) đều cài đè lên nhau được.
+    signingConfigs {
+        create("fixed") {
+            storeFile = file("smsbubble.keystore")
+            storePassword = "smsbubble"
+            keyAlias = "smsbubble"
+            keyPassword = "smsbubble"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("fixed")
+        }
         release {
+            signingConfig = signingConfigs.getByName("fixed")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
